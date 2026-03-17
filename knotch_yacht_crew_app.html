@@ -1,0 +1,595 @@
+
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+#root{background:#060E18;min-height:600px;display:flex;justify-content:center;padding:20px 0 40px;}
+input,textarea,button{font-family:'Montserrat',sans-serif;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#1E3A5F;border-radius:2px;}
+</style>
+<script type="text/babel">
+const {useState,useRef,useCallback}=React;
+const F="'Montserrat',sans-serif";
+const SF="'Playfair Display',serif";
+const C={
+  bg:"#080F1A",card:"#0F1E30",cardMid:"#162A40",border:"#1E3A5F",
+  gold:"#C9A84C",goldDark:"#8A6B2A",white:"#FFFFFF",off:"#E8EDF3",
+  muted:"#7A8FA6",green:"#2ECC71",red:"#E74C3C",blue:"#3498DB",
+  star:"#F1C40F",orange:"#E67E22",purple:"#9B59B6"
+};
+
+const CREW=[
+  {id:1,name:"Sofia Reyes",age:27,flag:"🇪🇸",nat:"Spanish",role:"Chief Stewardess",rating:4.9,reviews:23,dist:"0.3nm",avail:"Now",exp:"6 yrs",yachts:["M/Y Serenity (55m)","M/Y Bella Vista (42m)","S/Y Horizon (38m)"],certs:["STCW","ENG1","Silver Service","WSET L2","Wine & Spirits"],langs:["English","Spanish","French"],bio:"Six seasons delivering 5-star service across the Med. Expert in owner-to-charter transitions and interior management.",colors:["#1B4F72","#0d2440"],pc:4},
+  {id:2,name:"Marco Bianchi",age:31,flag:"🇮🇹",nat:"Italian",role:"Bosun",rating:4.7,reviews:31,dist:"0.8nm",avail:"Now",exp:"8 yrs",yachts:["S/Y White Spirit (60m)","M/Y Neptune (48m)","M/Y Adriatic Star (52m)"],certs:["STCW Adv","Powerboat L2","Dive Master","Rigging","Tender Op"],langs:["English","Italian","Spanish"],bio:"8 seasons on Med superyachts. Expert in deck operations, water sports instruction, and tender driving.",colors:["#1A5276","#0a1e30"],pc:3},
+  {id:3,name:"Emma Johansson",age:25,flag:"🇸🇪",nat:"Swedish",role:"Stewardess",rating:4.8,reviews:14,dist:"0.2nm",avail:"Now",exp:"3 yrs",yachts:["M/Y Azure Dream (35m)","M/Y Prestige (28m)"],certs:["STCW","ENG1","Food Safety L2","Cocktail Mixing"],langs:["English","Swedish","Norwegian"],bio:"Detail-oriented stewardess specialising in interior presentation, floristry, and creating unforgettable guest experiences.",colors:["#154360","#071828"],pc:4},
+  {id:4,name:"Luca Ferreira",age:34,flag:"🇵🇹",nat:"Portuguese",role:"Chef",rating:5.0,reviews:19,dist:"1.2nm",avail:"Next week",exp:"10 yrs",yachts:["M/Y La Dolce Vita (62m)","M/Y Royal Blue (55m)","M/Y Pacific Star (47m)"],certs:["STCW","Pro Chef Cert","HACCP","Food Hygiene"],langs:["English","Portuguese","French","Spanish"],bio:"Michelin-trained yacht chef. Mediterranean cuisine with Pacific fusion. Comfortable with both owner and charter programmes.",colors:["#7B241C","#3a0a08"],pc:4},
+  {id:5,name:"Claire Dubois",age:29,flag:"🇫🇷",nat:"French",role:"2nd Stewardess",rating:4.6,reviews:9,dist:"0.5nm",avail:"Now",exp:"4 yrs",yachts:["M/Y Riviera Sun (42m)","S/Y Atlantis (33m)"],certs:["STCW","Floristry","Silver Service","Sommelier L1"],langs:["French","English","Italian"],bio:"Former luxury hotel manager turned stewardess. Specialises in premium floristry, tableware, and guest programming.",colors:["#6C3483","#2d0e45"],pc:3},
+  {id:6,name:"Tom Walsh",age:30,flag:"🇬🇧",nat:"British",role:"Deckhand",rating:4.5,reviews:7,dist:"0.4nm",avail:"Tomorrow",exp:"2 yrs",yachts:["M/Y Sea Princess (38m)","M/Y Navigator (30m)"],certs:["STCW","Powerboat L2","RYA Day Skipper"],langs:["English"],bio:"Professional racing sailor background. Strong physical fitness, reliable, and excellent guest interaction skills.",colors:["#1F618D","#081828"],pc:2},
+];
+
+const ROLES=["Captain","Chief Officer","2nd Officer","Chief Engineer","2nd Engineer","ETO","Bosun","Chief Stewardess","2nd Stewardess","3rd Stewardess","Chef","Sous Chef","Purser","Deckhand","Engineer","PT Trainer","Masseuse","Hairdresser","Security","Dive Instructor","Watersports","Other"];
+const SIZES=["20-29m","30-39m","40-49m","50-59m","60-69m","70-79m","80-99m","100m+"];
+const VTYPES=["Motor","Sailing","Explorer","Catamaran","Gulet"];
+const PROGS=["Charter","Private","Delivery","Shipyard","New Build"];
+const PORTS=["Antibes","Monaco","Cannes","Barcelona","Palma","Ibiza","Genoa","Porto Cervo","Split","Dubrovnik","Athens","Mykonos","Fort Lauderdale","Miami","Newport","St Barts","Antigua","Barbados"];
+const CTYPES=["Daywork","Relief","Temporary","Permanent"];
+const DURS=["1 day","2-3 days","1 week","2 weeks","1 month","3 months","Full season"];
+const CERTS_LIST=["STCW Basic Safety","ENG1 Medical","GMDSS Operator","Powerboat Level 2","RYA Day Skipper","Silver Service","Food Safety L2","WSET Level 2","Dive Master","Rigging & Sail","First Aid Adv","Fire Fighting Adv"];
+
+// ── MINI COMPONENTS ─────────────────────────────────────────────────
+function Chip({label,active,onClick}){
+  return <button onClick={onClick} style={{padding:"8px 14px",borderRadius:20,background:active?C.gold:C.cardMid,border:`1px solid ${active?C.gold:C.border}`,color:active?"#080F1A":C.off,fontSize:12,fontFamily:F,cursor:"pointer",fontWeight:active?600:400,transition:"all 0.15s",userSelect:"none"}}>{label}</button>;
+}
+function GoldBtn({label,disabled,onClick}){
+  return <button disabled={disabled} onClick={onClick} style={{width:"100%",padding:"16px",borderRadius:24,background:disabled?C.border:C.gold,border:"none",color:disabled?"#4A6A8A":"#080F1A",fontFamily:F,fontSize:15,fontWeight:700,cursor:disabled?"not-allowed":"pointer",letterSpacing:"0.06em",marginTop:20,transition:"all 0.2s"}}>{label}</button>;
+}
+function Badge({text,color}){
+  return <span style={{padding:"4px 10px",borderRadius:20,background:`${color}22`,color,fontSize:11,fontFamily:F,fontWeight:500,whiteSpace:"nowrap",display:"inline-block"}}>{text}</span>;
+}
+function ActionBtn({icon,color,size,onClick}){
+  const [hover,setHover]=useState(false);
+  return <button onClick={onClick} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)} style={{width:size,height:size,borderRadius:"50%",background:hover?`${color}25`:`${color}12`,border:`2px solid ${color}`,color,fontSize:size>50?22:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:F,transition:"all 0.15s",transform:hover?"scale(1.08)":"scale(1)",userSelect:"none"}}>{icon}</button>;
+}
+function Label({text,mt=16}){
+  return <p style={{color:C.muted,fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.1em",marginTop:mt}}>{text}</p>;
+}
+function TInput({value,onChange,placeholder,type="text"}){
+  return <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{width:"100%",background:C.cardMid,border:`1px solid ${C.border}`,borderRadius:12,color:C.white,fontFamily:F,fontSize:14,padding:"12px 16px",outline:"none",marginTop:8,transition:"border 0.2s"}} onFocus={e=>e.target.style.borderColor=C.gold} onBlur={e=>e.target.style.borderColor=C.border}/>;
+}
+function Section({title,children}){
+  return <div style={{marginBottom:16}}><p style={{color:C.gold,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10}}>{title}</p>{children}</div>;
+}
+function Row({label,value}){
+  return <div style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.muted,fontSize:13}}>{label}</span><span style={{color:C.white,fontSize:13,fontWeight:500}}>{value||"—"}</span></div>;
+}
+function ProgressBar({step,total}){
+  return <div style={{display:"flex",gap:6}}>{Array.from({length:total},(_,i)=><div key={i} style={{flex:1,height:3,borderRadius:2,background:i<step?C.gold:C.border,transition:"background 0.3s"}}/>)}</div>;
+}
+
+// ── MAIN APP ─────────────────────────────────────────────────────────
+function App(){
+  const [screen,setScreen]=useState("welcome");
+  // Captain onboarding
+  const [capStep,setCapStep]=useState(1);
+  const [capRole,setCapRole]=useState(null);
+  const [vSize,setVSize]=useState("40-49m");
+  const [vType,setVType]=useState(null);
+  const [prog,setProg]=useState(null);
+  const [port,setPort]=useState(null);
+  const [cType,setCType]=useState(null);
+  const [roleNeed,setRoleNeed]=useState(null);
+  const [dur,setDur]=useState(null);
+  const [note,setNote]=useState("");
+  // Swipe
+  const [cardIdx,setCardIdx]=useState(0);
+  const [liked,setLiked]=useState([]);
+  const [dragX,setDragX]=useState(0);
+  const [isDragging,setIsDragging]=useState(false);
+  const startXRef=useRef(0);
+  const [swipeDir,setSwipeDir]=useState(null);
+  const [tab,setTab]=useState("discover");
+  const [photoIdx,setPhotoIdx]=useState(0);
+  const [showProf,setShowProf]=useState(false);
+  // Crew onboarding
+  const [crewStep,setCrewStep]=useState(1);
+  const [crewRole,setCrewRole]=useState(null);
+  const [crewName,setCrewName]=useState("");
+  const [crewAge,setCrewAge]=useState("25");
+  const [crewNat,setCrewNat]=useState("");
+  const [crewAvail,setCrewAvail]=useState("Available Now");
+  const [crewCerts,setCrewCerts]=useState([]);
+  const [crewTab,setCrewTab]=useState("profile");
+
+  // Swipe logic
+  const triggerSwipe=(dir)=>{
+    setSwipeDir(dir);
+    if(dir==="right") setLiked(p=>[...p,CREW[cardIdx]]);
+    setTimeout(()=>{
+      setCardIdx(i=>i+1);
+      setSwipeDir(null);
+      setDragX(0);
+      setPhotoIdx(0);
+    },350);
+  };
+  const onDS=(e)=>{
+    const x=e.touches?e.touches[0].clientX:e.clientX;
+    startXRef.current=x;
+    setIsDragging(true);
+  };
+  const onDM=(e)=>{
+    if(!isDragging)return;
+    if(e.preventDefault)e.preventDefault();
+    const x=e.touches?e.touches[0].clientX:e.clientX;
+    setDragX(x-startXRef.current);
+  };
+  const onDE=()=>{
+    if(Math.abs(dragX)>90) triggerSwipe(dragX>0?"right":"left");
+    else setDragX(0);
+    setIsDragging(false);
+  };
+
+  const profile=CREW[cardIdx];
+  const sh={fontFamily:SF,fontSize:26,fontWeight:700,color:C.white,marginBottom:4};
+  const sp={color:C.muted,fontSize:13,marginTop:4};
+
+  // ── PHONE WRAPPER ──────────────────────────────────────────────
+  const phone=(content)=>(
+    <div style={{width:"100%",maxWidth:380,background:C.bg,minHeight:700,borderRadius:40,overflow:"hidden",position:"relative",boxShadow:"0 30px 80px rgba(0,0,0,0.7)",fontFamily:F}}>
+      {content}
+    </div>
+  );
+
+  // ── WELCOME ────────────────────────────────────────────────────
+  if(screen==="welcome") return phone(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:700,padding:"40px 28px",background:`radial-gradient(ellipse at 50% 0%, #1B4F7220 0%, transparent 60%), ${C.bg}`}}>
+      <div style={{fontSize:52,marginBottom:14,filter:"drop-shadow(0 4px 12px rgba(201,168,76,0.4))"}}>⚓</div>
+      <h1 style={{fontFamily:SF,fontSize:44,fontWeight:700,color:C.gold,letterSpacing:"0.02em",marginBottom:6}}>knotch</h1>
+      <p style={{color:C.muted,fontSize:11,letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:52}}>The Dock Just Went Digital</p>
+      <div style={{width:"100%",display:"flex",flexDirection:"column",gap:14}}>
+        <button onClick={()=>{setScreen("captain_onboard");setCapStep(1);}} style={{width:"100%",padding:"20px 24px",borderRadius:18,background:C.gold,border:"none",color:"#080F1A",cursor:"pointer",textAlign:"left"}}>
+          <p style={{fontSize:15,fontWeight:700,letterSpacing:"0.06em"}}>I'M HIRING</p>
+          <p style={{fontSize:12,opacity:0.65,marginTop:3}}>Captains & Heads of Department</p>
+        </button>
+        <button onClick={()=>{setScreen("crew_onboard");setCrewStep(1);}} style={{width:"100%",padding:"20px 24px",borderRadius:18,background:"transparent",border:`1px solid ${C.border}`,color:C.white,cursor:"pointer",textAlign:"left"}}>
+          <p style={{fontSize:15,fontWeight:700,letterSpacing:"0.06em"}}>I'M CREW</p>
+          <p style={{fontSize:12,color:C.muted,marginTop:3}}>Find your next yacht position</p>
+        </button>
+      </div>
+      <p style={{color:C.muted,fontSize:11,marginTop:36,letterSpacing:"0.05em"}}>Mediterranean season starting soon ⛵</p>
+    </div>
+  );
+
+  // ── CAPTAIN ONBOARDING ─────────────────────────────────────────
+  if(screen==="captain_onboard"){
+    const stepContent=()=>{
+      if(capStep===1) return <>
+        <h2 style={sh}>Your role on board?</h2>
+        <p style={sp}>Select your position</p>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:20}}>
+          {["Captain","Chief Officer","Chief Engineer","Chief Stew","Bosun","2nd Engineer","Purser","Other"].map(r=>(
+            <Chip key={r} label={r} active={capRole===r} onClick={()=>setCapRole(r)}/>
+          ))}
+        </div>
+        <div style={{flex:1}}/>
+        <GoldBtn label="Continue →" disabled={!capRole} onClick={()=>setCapStep(2)}/>
+      </>;
+      if(capStep===2) return <>
+        <h2 style={sh}>Your vessel</h2>
+        <p style={sp}>Help crew understand your yacht</p>
+        <Label text="Vessel size"/>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:8}}>
+          {SIZES.map(s=><Chip key={s} label={s} active={vSize===s} onClick={()=>setVSize(s)}/>)}
+        </div>
+        <Label text="Vessel type" mt={18}/>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:8}}>
+          {VTYPES.map(t=><Chip key={t} label={t} active={vType===t} onClick={()=>setVType(t)}/>)}
+        </div>
+        <Label text="Programme type" mt={18}/>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:8}}>
+          {PROGS.map(p=><Chip key={p} label={p} active={prog===p} onClick={()=>setProg(p)}/>)}
+        </div>
+        <div style={{flex:1}}/>
+        <GoldBtn label="Continue →" disabled={!vType||!prog} onClick={()=>setCapStep(3)}/>
+      </>;
+      if(capStep===3) return <>
+        <h2 style={sh}>Where are you?</h2>
+        <p style={sp}>Select your current port</p>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:20}}>
+          {PORTS.map(p=><Chip key={p} label={p} active={port===p} onClick={()=>setPort(p)}/>)}
+        </div>
+        <div style={{flex:1}}/>
+        <GoldBtn label="Continue →" disabled={!port} onClick={()=>setCapStep(4)}/>
+      </>;
+      if(capStep===4) return <>
+        <h2 style={sh}>Who do you need?</h2>
+        <p style={sp}>Define your requirements</p>
+        <Label text="Crew type" mt={18}/>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:8}}>
+          {CTYPES.map(t=><Chip key={t} label={t} active={cType===t} onClick={()=>setCType(t)}/>)}
+        </div>
+        <Label text="Role needed" mt={18}/>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:8}}>
+          {ROLES.slice(0,14).map(r=><Chip key={r} label={r} active={roleNeed===r} onClick={()=>setRoleNeed(r)}/>)}
+        </div>
+        <Label text="Duration" mt={18}/>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:8}}>
+          {DURS.map(d=><Chip key={d} label={d} active={dur===d} onClick={()=>setDur(d)}/>)}
+        </div>
+        <Label text="Quick note to crew (optional)" mt={18}/>
+        <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. Must be available this weekend..." style={{width:"100%",background:C.cardMid,border:`1px solid ${C.border}`,borderRadius:12,color:C.white,fontFamily:F,fontSize:13,padding:"12px 16px",resize:"none",height:76,marginTop:8,outline:"none"}}/>
+        <div style={{flex:1}}/>
+        <GoldBtn label="Find Crew ⚓" disabled={!cType||!roleNeed||!dur} onClick={()=>setScreen("swipe_deck")}/>
+      </>;
+    };
+    return phone(
+      <div style={{display:"flex",flexDirection:"column",minHeight:700}}>
+        <div style={{padding:"44px 24px 0",display:"flex",alignItems:"center",gap:14}}>
+          <button onClick={()=>capStep>1?setCapStep(s=>s-1):setScreen("welcome")} style={{background:"none",border:"none",color:C.muted,fontSize:20,cursor:"pointer",padding:"4px 8px 4px 0"}}>←</button>
+          <div style={{flex:1}}>
+            <ProgressBar step={capStep} total={4}/>
+            <p style={{color:C.muted,fontSize:11,marginTop:5}}>Step {capStep} of 4</p>
+          </div>
+          <button onClick={()=>setScreen("welcome")} style={{background:"none",border:"none",color:C.muted,fontSize:12,cursor:"pointer"}}>Cancel</button>
+        </div>
+        <div style={{flex:1,padding:"20px 24px 24px",display:"flex",flexDirection:"column",overflowY:"auto",minHeight:0}}>
+          {stepContent()}
+        </div>
+      </div>
+    );
+  }
+
+  // ── SWIPE DECK ─────────────────────────────────────────────────
+  if(screen==="swipe_deck"){
+    const rem=CREW.length-cardIdx;
+    return phone(
+      <div style={{display:"flex",flexDirection:"column",height:700}}>
+        {/* Header */}
+        <div style={{padding:"40px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <h1 style={{fontFamily:SF,fontSize:22,fontWeight:700,color:C.gold}}>knotch</h1>
+          <div style={{textAlign:"right"}}>
+            <p style={{color:C.white,fontSize:12,fontWeight:600}}>{port||"Antibes"}, France</p>
+            <p style={{color:C.muted,fontSize:11}}>{rem>0?`${rem} crew nearby`:"No more crew"}</p>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{flex:1,padding:"10px 16px",overflow:"hidden",display:"flex",flexDirection:"column",minHeight:0}}>
+          {tab==="discover"&&<>
+            {cardIdx>=CREW.length?(
+              <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}>
+                <div style={{fontSize:44}}>⚓</div>
+                <h3 style={{fontFamily:SF,color:C.gold,fontSize:20}}>All caught up!</h3>
+                <p style={{color:C.muted,textAlign:"center",fontSize:13,lineHeight:1.6}}>No more crew in your area.<br/>Check back tomorrow.</p>
+                <button onClick={()=>{setCardIdx(0);setLiked([]);setDragX(0);}} style={{padding:"12px 28px",borderRadius:24,background:"none",border:`1px solid ${C.gold}`,color:C.gold,fontFamily:F,fontSize:13,cursor:"pointer",marginTop:8}}>Start Over</button>
+              </div>
+            ):(
+              <>
+                {/* Card stack */}
+                <div style={{position:"relative",flex:1,maxHeight:480}}>
+                  {/* BG cards */}
+                  {[2,1].map(offset=>{
+                    const idx2=cardIdx+offset;
+                    if(idx2>=CREW.length)return null;
+                    const c=CREW[idx2];
+                    return <div key={c.id} style={{position:"absolute",inset:0,borderRadius:22,background:`linear-gradient(155deg,${c.colors[0]},${c.colors[1]})`,transform:`scale(${1-offset*0.04}) translateY(${offset*12}px)`,zIndex:10-offset,overflow:"hidden"}}>
+                      <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"20px 18px 16px",background:"linear-gradient(to top,rgba(0,0,0,0.75),transparent)"}}>
+                        <p style={{color:C.white,fontWeight:700,fontSize:17,fontFamily:SF}}>{c.name}</p>
+                      </div>
+                    </div>;
+                  })}
+                  {/* Top card */}
+                  {profile&&(
+                    <div
+                      onMouseDown={onDS} onMouseMove={onDM} onMouseUp={onDE} onMouseLeave={onDE}
+                      onTouchStart={onDS} onTouchMove={onDM} onTouchEnd={onDE}
+                      style={{position:"absolute",inset:0,borderRadius:22,background:`linear-gradient(155deg,${profile.colors[0]},${profile.colors[1]})`,transform:swipeDir==="right"?"translateX(160%) rotate(28deg)":swipeDir==="left"?"translateX(-160%) rotate(-28deg)":`translateX(${dragX}px) rotate(${dragX*0.035}deg)`,transition:swipeDir?"transform 0.35s ease":isDragging?"none":"transform 0.2s ease",zIndex:20,cursor:isDragging?"grabbing":"grab",overflow:"hidden",boxShadow:"0 16px 50px rgba(0,0,0,0.55)"}}
+                    >
+                      {/* Photo dots */}
+                      <div style={{position:"absolute",top:14,left:0,right:0,display:"flex",justifyContent:"center",gap:5,zIndex:4}}>
+                        {Array.from({length:profile.pc}).map((_,i)=>(
+                          <div key={i} style={{width:i===photoIdx?18:5,height:5,borderRadius:3,background:i===photoIdx?C.white:"rgba(255,255,255,0.35)",transition:"all 0.3s"}}/>
+                        ))}
+                      </div>
+                      {/* Tap zones */}
+                      <div style={{position:"absolute",inset:0,display:"flex",zIndex:3}}>
+                        <div style={{flex:1}} onClick={()=>{if(!isDragging&&Math.abs(dragX)<6)setPhotoIdx(i=>Math.max(0,i-1));}}/>
+                        <div style={{flex:1}} onClick={()=>{if(!isDragging&&Math.abs(dragX)<6)setPhotoIdx(i=>Math.min(profile.pc-1,i+1));}}/>
+                      </div>
+                      {/* Like/Nope stamps */}
+                      {dragX>35&&<div style={{position:"absolute",top:44,left:20,zIndex:5,padding:"6px 14px",borderRadius:8,border:`3px solid ${C.green}`,transform:"rotate(-12deg)"}}>
+                        <span style={{color:C.green,fontWeight:700,fontSize:20,letterSpacing:"0.1em"}}>INTERESTED</span>
+                      </div>}
+                      {dragX<-35&&<div style={{position:"absolute",top:44,right:20,zIndex:5,padding:"6px 14px",borderRadius:8,border:`3px solid ${C.red}`,transform:"rotate(12deg)"}}>
+                        <span style={{color:C.red,fontWeight:700,fontSize:20,letterSpacing:"0.1em"}}>PASS</span>
+                      </div>}
+                      {/* Avatar */}
+                      <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        <div style={{width:110,height:110,borderRadius:"50%",background:"rgba(255,255,255,0.12)",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid rgba(255,255,255,0.2)"}}>
+                          <span style={{color:C.white,fontSize:38,fontWeight:700,fontFamily:SF}}>{profile.name.split(" ").map(n=>n[0]).join("")}</span>
+                        </div>
+                      </div>
+                      {/* Bottom info */}
+                      <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"22px 18px 14px",background:"linear-gradient(to top,rgba(0,0,0,0.88) 55%,transparent)",zIndex:4}}>
+                        <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:8}}>
+                          <div>
+                            <p style={{color:C.white,fontWeight:700,fontSize:22,fontFamily:SF}}>{profile.name}, {profile.age}</p>
+                            <p style={{color:C.gold,fontSize:13,fontWeight:600,marginTop:2}}>{profile.role}</p>
+                            <p style={{color:"rgba(255,255,255,0.65)",fontSize:12,marginTop:2}}>{profile.flag} {profile.nat} · {profile.exp} exp</p>
+                          </div>
+                          <button onClick={e=>{e.stopPropagation();setShowProf(true);}} style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,0.18)",border:"1px solid rgba(255,255,255,0.3)",color:C.white,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:5}}>ℹ</button>
+                        </div>
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                          <Badge text={`⭐ ${profile.rating} (${profile.reviews})`} color={C.star}/>
+                          <Badge text={`📍 ${profile.dist}`} color={C.blue}/>
+                          <Badge text={profile.avail==="Now"?"✓ Available Now":profile.avail} color={profile.avail==="Now"?C.green:C.orange}/>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Action buttons */}
+                <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:18,paddingTop:14,paddingBottom:4,flexShrink:0}}>
+                  <ActionBtn icon="✕" color={C.red} size={56} onClick={()=>triggerSwipe("left")}/>
+                  <ActionBtn icon="⭐" color={C.star} size={44} onClick={()=>triggerSwipe("right")}/>
+                  <ActionBtn icon="♥" color={C.green} size={56} onClick={()=>triggerSwipe("right")}/>
+                </div>
+                <p style={{textAlign:"center",color:C.muted,fontSize:10,marginTop:2}}>Drag card · Tap ℹ for full profile · ← Photo →</p>
+              </>
+            )}
+          </>}
+
+          {tab==="matches"&&<div style={{overflowY:"auto",flex:1}}>
+            <h2 style={{fontFamily:SF,color:C.gold,fontSize:20,marginBottom:2}}>Interested</h2>
+            <p style={{color:C.muted,fontSize:12,marginBottom:18}}>{liked.length} crew flagged</p>
+            {liked.length===0?(
+              <div style={{textAlign:"center",paddingTop:60}}>
+                <p style={{fontSize:36,marginBottom:12}}>♥</p>
+                <p style={{color:C.muted,fontSize:13}}>No crew flagged yet<br/>Start swiping!</p>
+              </div>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {liked.map(c=>(
+                  <div key={c.id} style={{background:C.card,borderRadius:16,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,border:`1px solid ${C.border}`}}>
+                    <div style={{width:48,height:48,borderRadius:"50%",background:`linear-gradient(135deg,${c.colors[0]},${c.colors[1]})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{color:C.white,fontWeight:700,fontSize:14,fontFamily:SF}}>{c.name.split(" ").map(n=>n[0]).join("")}</span>
+                    </div>
+                    <div style={{flex:1}}>
+                      <p style={{color:C.white,fontWeight:600,fontSize:14}}>{c.name}</p>
+                      <p style={{color:C.muted,fontSize:11,marginTop:2}}>{c.role} · ⭐ {c.rating} · {c.dist}</p>
+                    </div>
+                    <button style={{padding:"7px 14px",borderRadius:20,background:C.gold,border:"none",color:"#080F1A",fontFamily:F,fontSize:11,fontWeight:700,cursor:"pointer"}}>MSG</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>}
+
+          {tab==="brief"&&<div style={{overflowY:"auto",flex:1}}>
+            <h2 style={{fontFamily:SF,color:C.gold,fontSize:20,marginBottom:18}}>Your Brief</h2>
+            <div style={{background:C.card,borderRadius:16,padding:18,border:`1px solid ${C.border}`,marginBottom:14}}>
+              <Row label="Role" value={capRole}/>
+              <Row label="Vessel" value={vSize+(vType?" · "+vType:"")}/>
+              <Row label="Programme" value={prog}/>
+              <Row label="Port" value={port}/>
+              <Row label="Looking for" value={roleNeed}/>
+              <Row label="Duration" value={dur}/>
+              <Row label="Type" value={cType}/>
+            </div>
+            {note&&<div style={{background:C.card,borderRadius:16,padding:16,border:`1px solid ${C.border}`,marginBottom:14}}>
+              <p style={{color:C.muted,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Note to crew</p>
+              <p style={{color:C.white,fontSize:13,lineHeight:1.6}}>{note}</p>
+            </div>}
+            <button onClick={()=>setScreen("welcome")} style={{width:"100%",padding:"14px",borderRadius:24,background:"none",border:`1px solid ${C.border}`,color:C.muted,fontFamily:F,fontSize:13,cursor:"pointer",marginTop:8}}>Sign Out</button>
+          </div>}
+        </div>
+
+        {/* Bottom tabs */}
+        <div style={{display:"flex",padding:"8px 0 18px",borderTop:`1px solid ${C.border}`,background:C.bg,flexShrink:0}}>
+          {[["discover","⊕","Discover"],["matches","♥","Flagged"],["brief","≡","Brief"]].map(([id,icon,label])=>(
+            <button key={id} onClick={()=>setTab(id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+              <span style={{fontSize:20,color:tab===id?C.gold:C.muted,transition:"color 0.2s"}}>{icon}</span>
+              <span style={{fontSize:10,color:tab===id?C.gold:C.muted,fontFamily:F,letterSpacing:"0.04em"}}>{label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Profile modal */}
+        {showProf&&profile&&(
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.82)",zIndex:100,display:"flex",flexDirection:"column",justifyContent:"flex-end",borderRadius:40}}>
+            <div style={{background:C.card,borderRadius:"22px 22px 0 0",padding:"22px 20px",maxHeight:"78%",overflowY:"auto"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                <div>
+                  <h2 style={{fontFamily:SF,color:C.white,fontSize:22}}>{profile.name}, {profile.age}</h2>
+                  <p style={{color:C.gold,fontSize:13,marginTop:3}}>{profile.role} · {profile.flag} {profile.nat}</p>
+                </div>
+                <button onClick={()=>setShowProf(false)} style={{background:"rgba(255,255,255,0.1)",border:"none",color:C.white,borderRadius:"50%",width:34,height:34,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+                <Badge text={`⭐ ${profile.rating} · ${profile.reviews} reviews`} color={C.star}/>
+                <Badge text={profile.exp+" experience"} color={C.blue}/>
+                <Badge text={profile.avail==="Now"?"Available Now":profile.avail} color={profile.avail==="Now"?C.green:C.orange}/>
+              </div>
+              <p style={{color:"rgba(255,255,255,0.78)",fontSize:13,lineHeight:1.65,marginBottom:18}}>{profile.bio}</p>
+              <Section title="Vessel History">
+                {profile.yachts.map((y,i)=><p key={i} style={{color:"rgba(255,255,255,0.7)",fontSize:12,padding:"7px 0",borderBottom:i<profile.yachts.length-1?`1px solid ${C.border}`:"none"}}>⚓ {y}</p>)}
+              </Section>
+              <Section title="Certifications">
+                <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                  {profile.certs.map((c,i)=><Badge key={i} text={c} color={C.muted}/>)}
+                </div>
+              </Section>
+              <Section title="Languages">
+                <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                  {profile.langs.map((l,i)=><Badge key={i} text={l} color={C.purple}/>)}
+                </div>
+              </Section>
+              <div style={{display:"flex",gap:10,marginTop:20}}>
+                <button onClick={()=>{setShowProf(false);triggerSwipe("left");}} style={{flex:1,padding:"13px",borderRadius:22,background:"rgba(231,76,60,0.12)",border:`1px solid ${C.red}`,color:C.red,fontFamily:F,fontSize:13,fontWeight:600,cursor:"pointer"}}>Pass</button>
+                <button onClick={()=>{setShowProf(false);triggerSwipe("right");}} style={{flex:1,padding:"13px",borderRadius:22,background:C.gold,border:"none",color:"#080F1A",fontFamily:F,fontSize:13,fontWeight:700,cursor:"pointer"}}>Interested ♥</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── CREW ONBOARDING ────────────────────────────────────────────
+  if(screen==="crew_onboard"){
+    const sc=()=>{
+      if(crewStep===1) return <>
+        <h2 style={sh}>What's your role?</h2>
+        <p style={sp}>Select your primary position</p>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:20}}>
+          {ROLES.map(r=><Chip key={r} label={r} active={crewRole===r} onClick={()=>setCrewRole(r)}/>)}
+        </div>
+        <div style={{flex:1}}/>
+        <GoldBtn label="Continue →" disabled={!crewRole} onClick={()=>setCrewStep(2)}/>
+      </>;
+      if(crewStep===2) return <>
+        <h2 style={sh}>Your profile</h2>
+        <p style={sp}>Help captains get to know you</p>
+        <Label text="Full name" mt={20}/>
+        <TInput value={crewName} onChange={setCrewName} placeholder="Your full name"/>
+        <Label text="Age" mt={16}/>
+        <TInput value={crewAge} onChange={setCrewAge} placeholder="Your age" type="number"/>
+        <Label text="Nationality" mt={16}/>
+        <TInput value={crewNat} onChange={setCrewNat} placeholder="e.g. British, French..."/>
+        <div style={{flex:1}}/>
+        <GoldBtn label="Continue →" disabled={!crewName||!crewNat} onClick={()=>setCrewStep(3)}/>
+      </>;
+      if(crewStep===3) return <>
+        <h2 style={sh}>Certifications</h2>
+        <p style={sp}>Select all that you currently hold</p>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:18}}>
+          {CERTS_LIST.map(cert=>(
+            <label key={cert} style={{display:"flex",alignItems:"center",gap:12,background:C.cardMid,padding:"11px 14px",borderRadius:12,cursor:"pointer",border:`1px solid ${crewCerts.includes(cert)?C.gold:C.border}`,transition:"border 0.2s"}}>
+              <input type="checkbox" checked={crewCerts.includes(cert)} onChange={e=>setCrewCerts(p=>e.target.checked?[...p,cert]:p.filter(c=>c!==cert))} style={{width:16,height:16,accentColor:C.gold}}/>
+              <span style={{color:C.white,fontSize:13}}>{cert}</span>
+            </label>
+          ))}
+        </div>
+        <div style={{flex:1}}/>
+        <GoldBtn label="Continue →" onClick={()=>setCrewStep(4)}/>
+      </>;
+      if(crewStep===4) return <>
+        <h2 style={sh}>Availability</h2>
+        <p style={sp}>Let captains know when you're free</p>
+        <div style={{marginTop:22,display:"flex",flexDirection:"column",gap:9}}>
+          {["Available Now","In 3 days","Next week","Next month","Not available"].map(opt=>(
+            <button key={opt} onClick={()=>setCrewAvail(opt)} style={{padding:"14px 18px",borderRadius:14,background:crewAvail===opt?`${C.gold}18`:C.cardMid,border:`1px solid ${crewAvail===opt?C.gold:C.border}`,color:crewAvail===opt?C.gold:C.white,fontFamily:F,fontSize:13,textAlign:"left",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",gap:12}}>
+              <span style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${crewAvail===opt?C.gold:C.muted}`,background:crewAvail===opt?C.gold:"none",display:"inline-block",flexShrink:0,transition:"all 0.2s"}}/>
+              {opt}
+            </button>
+          ))}
+        </div>
+        <div style={{flex:1}}/>
+        <GoldBtn label="Create My Profile ✓" onClick={()=>setScreen("crew_home")}/>
+      </>;
+    };
+    return phone(
+      <div style={{display:"flex",flexDirection:"column",minHeight:700}}>
+        <div style={{padding:"44px 24px 0",display:"flex",alignItems:"center",gap:14}}>
+          <button onClick={()=>crewStep>1?setCrewStep(s=>s-1):setScreen("welcome")} style={{background:"none",border:"none",color:C.muted,fontSize:20,cursor:"pointer",padding:"4px 8px 4px 0"}}>←</button>
+          <div style={{flex:1}}>
+            <ProgressBar step={crewStep} total={4}/>
+            <p style={{color:C.muted,fontSize:11,marginTop:5}}>Step {crewStep} of 4</p>
+          </div>
+        </div>
+        <div style={{flex:1,padding:"20px 24px 24px",display:"flex",flexDirection:"column",overflowY:"auto"}}>{sc()}</div>
+      </div>
+    );
+  }
+
+  // ── CREW HOME ──────────────────────────────────────────────────
+  if(screen==="crew_home"){
+    const initials=(crewName||"YP").split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
+    return phone(
+      <div style={{display:"flex",flexDirection:"column",height:700}}>
+        <div style={{padding:"40px 20px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <h1 style={{fontFamily:SF,fontSize:20,fontWeight:700,color:C.gold}}>knotch</h1>
+          <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#1B4F72,#0a2540)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{color:C.white,fontSize:13,fontWeight:700,fontFamily:SF}}>{initials}</span>
+          </div>
+        </div>
+        <div style={{flex:1,padding:"0 16px 70px",overflowY:"auto"}}>
+          {crewTab==="profile"&&<div>
+            {/* Hero card */}
+            <div style={{background:"linear-gradient(155deg,#1B4F72,#071828)",borderRadius:22,padding:22,marginBottom:16,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-24,right:-24,width:130,height:130,borderRadius:"50%",background:"rgba(255,255,255,0.04)"}}/>
+              <div style={{position:"absolute",bottom:-30,left:-30,width:100,height:100,borderRadius:"50%",background:"rgba(201,168,76,0.06)"}}/>
+              <div style={{width:72,height:72,borderRadius:"50%",background:"rgba(255,255,255,0.14)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,border:"2px solid rgba(255,255,255,0.18)"}}>
+                <span style={{color:C.white,fontSize:24,fontWeight:700,fontFamily:SF}}>{initials}</span>
+              </div>
+              <h2 style={{fontFamily:SF,color:C.white,fontSize:22,fontWeight:700}}>{crewName||"Your Name"}</h2>
+              <p style={{color:C.gold,fontSize:13,marginTop:4}}>{crewRole||"Crew"}</p>
+              <p style={{color:"rgba(255,255,255,0.55)",fontSize:12,marginTop:3}}>{crewNat||"Nationality"}{crewAge?` · ${crewAge} yrs`:""}</p>
+              <div style={{marginTop:14}}>
+                <Badge text={["Available Now","In 3 days","Next week"].includes(crewAvail)?`✓ ${crewAvail}`:`⏸ ${crewAvail}`} color={crewAvail==="Available Now"?C.green:crewAvail==="Not available"?C.red:C.orange}/>
+              </div>
+            </div>
+            {/* Certs */}
+            <div style={{background:C.card,borderRadius:16,padding:18,marginBottom:14,border:`1px solid ${C.border}`}}>
+              <p style={{color:C.white,fontSize:14,fontWeight:600,marginBottom:12}}>Certifications</p>
+              {crewCerts.length===0?<p style={{color:C.muted,fontSize:12}}>No certifications added</p>:<div style={{display:"flex",flexWrap:"wrap",gap:7}}>{crewCerts.map((c,i)=><Badge key={i} text={c} color={C.blue}/>)}</div>}
+            </div>
+            {/* Photos */}
+            <div style={{background:C.card,borderRadius:16,padding:18,border:`1px solid ${C.border}`}}>
+              <p style={{color:C.white,fontSize:14,fontWeight:600,marginBottom:12}}>Photos <span style={{color:C.muted,fontWeight:400,fontSize:12}}>(tap + to add · 0/4)</span></p>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {[0,1,2,3].map(i=><div key={i} style={{aspectRatio:"1",borderRadius:12,border:`2px dashed ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><span style={{color:C.muted,fontSize:22}}>+</span></div>)}
+              </div>
+            </div>
+          </div>}
+
+          {crewTab==="availability"&&<div>
+            <h2 style={{fontFamily:SF,color:C.gold,fontSize:20,marginBottom:18}}>Availability</h2>
+            <div style={{display:"flex",flexDirection:"column",gap:9,marginBottom:20}}>
+              {["Available Now","In 3 days","Next week","Next month","Not available"].map(opt=>(
+                <button key={opt} onClick={()=>setCrewAvail(opt)} style={{padding:"14px 18px",borderRadius:14,background:crewAvail===opt?`${C.gold}18`:C.card,border:`1px solid ${crewAvail===opt?C.gold:C.border}`,color:crewAvail===opt?C.gold:C.white,fontFamily:F,fontSize:13,textAlign:"left",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",gap:12}}>
+                  <span style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${crewAvail===opt?C.gold:C.muted}`,background:crewAvail===opt?C.gold:"none",display:"inline-block",flexShrink:0}}/>
+                  {opt}
+                </button>
+              ))}
+            </div>
+            <div style={{background:C.card,borderRadius:16,padding:18,border:`1px solid ${C.border}`}}>
+              <p style={{color:C.white,fontSize:14,fontWeight:600,marginBottom:14}}>Port presence</p>
+              <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                {PORTS.slice(0,9).map(p=><Chip key={p} label={p} active={port===p} onClick={()=>setPort(p)}/>)}
+              </div>
+            </div>
+          </div>}
+
+          {crewTab==="flags"&&<div>
+            <h2 style={{fontFamily:SF,color:C.gold,fontSize:20,marginBottom:4}}>Flagged by Captains</h2>
+            <p style={{color:C.muted,fontSize:12,marginBottom:24}}>Captains who are interested in you</p>
+            <div style={{textAlign:"center",paddingTop:50}}>
+              <div style={{fontSize:40,marginBottom:16}}>⚓</div>
+              <p style={{color:C.white,fontWeight:600,fontFamily:SF,fontSize:18,marginBottom:8}}>No flags yet</p>
+              <p style={{color:C.muted,fontSize:13,lineHeight:1.6}}>Make sure your profile is complete<br/>and availability is up to date.</p>
+            </div>
+          </div>}
+        </div>
+
+        {/* Bottom tabs */}
+        <div style={{display:"flex",padding:"8px 0 18px",borderTop:`1px solid ${C.border}`,background:C.bg,flexShrink:0}}>
+          {[["profile","◉","Profile"],["availability","○","Availability"],["flags","⚓","Flags"]].map(([id,icon,label])=>(
+            <button key={id} onClick={()=>setCrewTab(id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+              <span style={{fontSize:20,color:crewTab===id?C.gold:C.muted,transition:"color 0.2s"}}>{icon}</span>
+              <span style={{fontSize:10,color:crewTab===id?C.gold:C.muted,fontFamily:F}}>{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
